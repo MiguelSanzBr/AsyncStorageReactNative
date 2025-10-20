@@ -57,7 +57,8 @@ export const AsyncStorageService = {
   },
 
   // Buscar usuário por email
-  async getUserByEmail(email: string): Promise<{ success: boolean; time: number; user?: User }> {
+  async getUserByEmail(email: string): Promise<{ success: boolean; time: number; user?: User; error?: string }> 
+ {
     const startTime = performance.now();
     
     try {
@@ -73,12 +74,12 @@ export const AsyncStorageService = {
         user 
       };
     } catch (error) {
-      const endTime = performance.now();
-      return { 
-        success: false, 
-        time: endTime - startTime 
-      };
-    }
+  const endTime = performance.now();
+  return { 
+    success: false, 
+    time: endTime - startTime,
+    error: (error as Error).message || 'Erro desconhecido ao buscar usuário.'
+  };}
   },
 
   // Buscar todos os usuários (para demonstração)

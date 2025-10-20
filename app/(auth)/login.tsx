@@ -1,5 +1,5 @@
 // app/(auth)/login.tsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   View, 
   Text, 
@@ -11,6 +11,18 @@ import {
   ActivityIndicator 
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
+import Checkbox from '../../components/Checkbox';
+import { AsyncStorageService } from '../../services/AsyncStorageService';
+import { SQLiteService } from '../../services/SQLiteService';
+
+type StorageType = 'asyncStorage' | 'sqlite';
+
+interface PerformanceResult {
+  storageType: StorageType;
+  time: number;
+  success: boolean;
+  message?: string;
+}
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -23,6 +35,29 @@ export default function LoginScreen() {
     password: '',
   });
   const [loading, setLoading] = useState(false);
+  const [selectedStorage, setSelectedStorage] = useState<StorageType>('asyncStorage');
+  const [performanceResults, setPerformanceResults] = useState<PerformanceResult[]>([]);
+  const [sqliteAvailable, setSqliteAvailable] = useState(true);
+
+  // Inicializar SQLite com tratamento de erro
+  useEffect(() => {
+    const initializeSQLite = async () => {
+      try {
+        await SQLiteService.init();
+        console.log('SQLite inicializado com sucesso');
+      } catch (error) {
+        console.error('Erro ao inicializar SQLite:', error);
+        setSqliteAvailable(false);
+        setSelectedStorage('asyncStorage');
+        Alert.alert(
+          'Aviso', 
+          'SQLite não está disponível. Usando AsyncStorage como padrão.'
+        );
+      }
+    };
+
+    initializeSQLite();
+  }, []);
 
   const validateForm = () => {
     const newErrors = {
@@ -30,7 +65,7 @@ export default function LoginScreen() {
       password: '',
     };
 
-    if (!formData.email) {
+    if (!formData.email.trim()) {
       newErrors.email = 'Email é obrigatório';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email inválido';
@@ -52,11 +87,112 @@ export default function LoginScreen() {
     setLoading(true);
     
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      Alert.alert('Sucesso', 'Login realizado com sucesso!');
-      // router.replace('/(tabs)'); // Comentei pois não existe (tabs) ainda
+      let result;
+      
+      if (selectedStorage === 'asyncStorage') {
+        result = await AsyncStorageService.getUserByEmail(formData.email.trim());
+      } else {
+        // Verificar se SQLite está disponível
+        if (!sqliteAvailable) {
+          Alert.alert('Erro', 'SQLite não está disponível. Use AsyncStorage.');
+          setLoading(false);
+          return;
+        }
+        
+        result = await SQLiteService.getUserByEmail(formData.email.trim());
+      }
+
+      const performanceResult: PerformanceResult = {
+        storageType: selectedStorage,
+        time: result.time,
+        success: result.success,
+        message: result.success ? 'Busca realizada com sucesso!' : result.error
+      };
+
+      setPerformanceResults(prev => [...prev, performanceResult]);
+
+      if (result.success && result.user) {
+        // Verificar senha
+        if (result.user.password === formData.password) {
+          Alert.alert(
+            'Sucesso!', 
+            `Login realizado com sucesso usando ${selectedStorage === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}!\n\nTempo de busca: ${result.time.toFixed(2)}ms`,
+            [
+              {
+                text: 'OK',
+                onPress: () => {
+                  setFormData({
+                    email: '',
+                    password: '',
+                  });
+                  // router.replace('/(tabs)');
+                }
+              }
+            ]
+          );
+        } else {
+          Alert.alert('Erro', 'Senha incorreta. Tente novamente.');
+        }
+      } else {
+        Alert.alert('Erro', (result.error || 'Usuário não encontrado. Verifique seu email.'));
+      }
     } catch (error) {
-      Alert.alert('Erro', 'Falha no login. Verifique suas credenciais.');
+      console.error('Erro no login:', error);
+      Alert.alert('Erro', 'Falha no login. Tente novamente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestPerformance = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    
+    try {
+      const testResults: PerformanceResult[] = [];
+
+      // Testar AsyncStorage
+      const asyncResult = await AsyncStorageService.getUserByEmail(formData.email.trim());
+      
+      testResults.push({
+        storageType: 'asyncStorage',
+        time: asyncResult.time,
+        success: asyncResult.success,
+        message: asyncResult.success ? 'AsyncStorage: OK' : asyncResult.error
+      });
+
+      // Testar SQLite apenas se estiver disponível
+      if (sqliteAvailable) {
+        const sqliteResult = await SQLiteService.getUserByEmail(formData.email.trim());
+        
+        testResults.push({
+          storageType: 'sqlite',
+          time: sqliteResult.time,
+          success: sqliteResult.success,
+          message: sqliteResult.success ? 'SQLite: OK' : sqliteResult.error
+        });
+      }
+
+      setPerformanceResults(testResults);
+
+      if (sqliteAvailable) {
+        Alert.alert(
+          'Teste de Desempenho - Busca',
+          `AsyncStorage: ${asyncResult.time.toFixed(2)}ms\nSQLite: ${testResults[1]?.time.toFixed(2)}ms\n\nVencedor: ${asyncResult.time < testResults[1]?.time ? 'AsyncStorage' : 'SQLite'}`,
+          [{ text: 'OK' }]
+        );
+      } else {
+        Alert.alert(
+          'Teste de Desempenho - Busca',
+          `AsyncStorage: ${asyncResult.time.toFixed(2)}ms\nSQLite: Indisponível`,
+          [{ text: 'OK' }]
+        );
+      }
+
+    } catch (error) {
+      console.error('Erro no teste de desempenho:', error);
+      Alert.alert('Erro', 'Falha no teste de desempenho.');
     } finally {
       setLoading(false);
     }
@@ -69,6 +205,14 @@ export default function LoginScreen() {
           <View style={styles.header}>
             <Text style={styles.title}>Bem-vindo de volta</Text>
             <Text style={styles.subtitle}>Faça login na sua conta</Text>
+            
+            {!sqliteAvailable && (
+              <View style={styles.warningBanner}>
+                <Text style={styles.warningText}>
+                  ⚠️ SQLite não disponível. Usando AsyncStorage.
+                </Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.inputContainer}>
@@ -98,21 +242,87 @@ export default function LoginScreen() {
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
           </View>
 
+          {/* Seção de escolha de armazenamento */}
+          <View style={styles.storageSection}>
+            <Text style={styles.sectionTitle}>Escolha o Armazenamento para Busca</Text>
+            
+            <Checkbox
+              label="AsyncStorage"
+              description="Busca em armazenamento chave-valor. Ideal para dados pequenos."
+              value={selectedStorage === 'asyncStorage'}
+              onValueChange={(value) => value && setSelectedStorage('asyncStorage')}
+            />
+            
+            <Checkbox
+              label="SQLite"
+              description="Busca em banco de dados relacional. Ideal para consultas complexas."
+              value={selectedStorage === 'sqlite'}
+              onValueChange={(value) => value && setSelectedStorage('sqlite')}
+              disabled={!sqliteAvailable}
+            />
+            
+            {!sqliteAvailable && (
+              <Text style={styles.disabledText}>
+                SQLite não está disponível no momento
+              </Text>
+            )}
+          </View>
+
+          {/* Resultados de desempenho */}
+          {performanceResults.length > 0 && (
+            <View style={styles.performanceSection}>
+              <Text style={styles.sectionTitle}>Resultados de Desempenho - Busca</Text>
+              {performanceResults.map((result, index) => (
+                <View key={index} style={styles.performanceResult}>
+                  <Text style={[
+                    styles.performanceText,
+                    result.success ? styles.performanceSuccess : styles.performanceError
+                  ]}>
+                    {result.storageType === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}: 
+                    {result.time.toFixed(2)}ms - {result.success ? '✅' : '❌'} {result.message}
+                  </Text>
+                </View>
+              ))}
+            </View>
+          )}
+
           <TouchableOpacity style={styles.forgotPassword}>
             <Text style={styles.linkText}>Esqueceu sua senha?</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={styles.buttonText}>Entrar</Text>
-            )}
-          </TouchableOpacity>
+          <View style={styles.buttonsContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.button, 
+                styles.primaryButton, 
+                loading && styles.buttonDisabled,
+                !sqliteAvailable && selectedStorage === 'sqlite' && styles.buttonDisabled
+              ]}
+              onPress={handleLogin}
+              disabled={loading || (!sqliteAvailable && selectedStorage === 'sqlite')}
+            >
+              {loading ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text style={styles.buttonText}>
+                  {!sqliteAvailable && selectedStorage === 'sqlite' 
+                    ? 'SQLite Indisponível' 
+                    : `Entrar com ${selectedStorage === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}`
+                  }
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.button, styles.secondaryButton, loading && styles.buttonDisabled]}
+              onPress={handleTestPerformance}
+              disabled={loading}
+            >
+              <Text style={styles.secondaryButtonText}>
+                Testar Desempenho (Busca) {sqliteAvailable ? '(Ambos)' : '(AsyncStorage)'}
+              </Text>
+            </TouchableOpacity>
+          </View>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>Não tem uma conta? </Text>
@@ -121,6 +331,7 @@ export default function LoginScreen() {
                 <Text style={styles.footerLink}>Cadastre-se</Text>
               </TouchableOpacity>
             </Link>
+
           </View>
         </View>
       </View>
@@ -139,15 +350,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
+  backgroundColor: 'white',
+  borderRadius: 16,
+  padding: 24,
+  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+  elevation: 4, // Keep this for Android
+},
   header: {
     marginBottom: 32,
     alignItems: 'center',
@@ -163,6 +371,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: 'center',
     color: '#6b7280',
+    marginBottom: 8,
+  },
+  warningBanner: {
+    backgroundColor: '#fef3cd',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f59e0b',
+    marginTop: 8,
+  },
+  warningText: {
+    color: '#92400e',
+    fontSize: 14,
+    fontWeight: '500',
+    textAlign: 'center',
   },
   inputContainer: {
     marginBottom: 16,
@@ -192,6 +415,47 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  storageSection: {
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: '#f8fafc',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  performanceSection: {
+    marginBottom: 20,
+    padding: 16,
+    backgroundColor: '#f0f9ff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#bae6fd',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1e293b',
+    marginBottom: 12,
+  },
+  performanceResult: {
+    marginBottom: 8,
+  },
+  performanceText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  performanceSuccess: {
+    color: '#059669',
+  },
+  performanceError: {
+    color: '#dc2626',
+  },
+  disabledText: {
+    fontSize: 12,
+    color: '#ef4444',
+    fontStyle: 'italic',
+    marginTop: 8,
+  },
   forgotPassword: {
     alignSelf: 'flex-end',
     marginBottom: 24,
@@ -200,19 +464,34 @@ const styles = StyleSheet.create({
     color: '#2563eb',
     fontWeight: '500',
   },
+  buttonsContainer: {
+    gap: 12,
+  },
   button: {
     width: '100%',
     paddingVertical: 16,
     borderRadius: 8,
-    backgroundColor: '#2563eb',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  primaryButton: {
+    backgroundColor: '#2563eb',
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#2563eb',
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
     color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  secondaryButtonText: {
+    color: '#2563eb',
     fontSize: 16,
     fontWeight: '600',
   },

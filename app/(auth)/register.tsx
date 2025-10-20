@@ -398,16 +398,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     justifyContent: 'center',
   },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
+   card: {
+  backgroundColor: 'white',
+  borderRadius: 16,
+  padding: 24,
+  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
+  elevation: 4, // Keep this for Android
+},
   header: {
     marginBottom: 32,
     alignItems: 'center',
