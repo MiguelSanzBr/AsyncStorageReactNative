@@ -1,6 +1,6 @@
 // services/SQLiteService.ts
-import * as SQLite from 'expo-sqlite';
 import { Platform } from 'react-native';
+import { WebSQLiteService } from './WebSQLiteService';
 
 export interface User {
   id: string;
@@ -10,119 +10,18 @@ export interface User {
   createdAt: string;
 }
 
-// Verificar se estamos no ambiente web
 const isWeb = Platform.OS === 'web';
 
-// Simular o SQLite no ambiente web
-class WebSQLiteSimulation {
-  private db: User[] = [];
-  private initialized = true;
-
-  async init(): Promise<void> {
-    console.log('SQLite simulado para ambiente web');
-    return Promise.resolve();
-  }
-
-  async saveUser(user: Omit<User, 'id' | 'createdAt'>): Promise<{ success: boolean; time: number; user?: User; error?: string }> {
-    const startTime = performance.now();
-    
-    try {
-      // Verificar se email já existe
-      const emailExists = this.db.some(u => u.email === user.email);
-      if (emailExists) {
-        throw new Error('Email já cadastrado');
-      }
-      
-      const newUser: User = {
-        ...user,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-      };
-
-      this.db.push(newUser);
-      
-      const endTime = performance.now();
-      return { 
-        success: true, 
-        time: endTime - startTime,
-        user: newUser
-      };
-    } catch (error: any) {
-      const endTime = performance.now();
-      return { 
-        success: false, 
-        time: endTime - startTime,
-        error: error.message || 'Erro ao salvar usuário'
-      };
-    }
-  }
-
-  async getUserByEmail(email: string): Promise<{ success: boolean; time: number; user?: User; error?: string }> {
-    const startTime = performance.now();
-    
-    try {
-      const user = this.db.find(u => u.email === email);
-      const endTime = performance.now();
-      
-      return { 
-        success: true, 
-        time: endTime - startTime,
-        user 
-      };
-    } catch (error: any) {
-      const endTime = performance.now();
-      return { 
-        success: false, 
-        time: endTime - startTime,
-        error: error.message
-      };
-    }
-  }
-
-  async getAllUsers(): Promise<{ success: boolean; time: number; users: User[]; error?: string }> {
-    const startTime = performance.now();
-    
-    try {
-      const users = [...this.db].reverse(); // Ordenar por mais recente
-      const endTime = performance.now();
-      
-      return { 
-        success: true, 
-        time: endTime - startTime,
-        users 
-      };
-    } catch (error: any) {
-      const endTime = performance.now();
-      return { 
-        success: false, 
-        time: endTime - startTime,
-        users: [],
-        error: error.message
-      };
-    }
-  }
-
-  async clearAll(): Promise<{ success: boolean; error?: string }> {
-    try {
-      this.db = [];
-      return { success: true };
-    } catch (error: any) {
-      return { 
-        success: false, 
-        error: error.message 
-      };
-    }
-  }
-}
-
-// Implementação real para mobile
+// Implementação para Mobile
 class NativeSQLiteService {
   private db: any = null;
   private initialized = false;
 
   async init(): Promise<void> {
+    if (isWeb) return; // Não inicializar no web
+    
     try {
-      // Usar openDatabase em vez de openDatabaseSync
+      const SQLite = require('expo-sqlite');
       this.db = SQLite.openDatabase('users.db');
       
       return new Promise((resolve, reject) => {
@@ -139,7 +38,7 @@ class NativeSQLiteService {
               [],
               () => {
                 this.initialized = true;
-                console.log('SQLite inicializado com sucesso no mobile');
+                console.log('SQLite Mobile inicializado com sucesso');
                 resolve();
               },
               (_: any, error: any) => {
@@ -152,7 +51,7 @@ class NativeSQLiteService {
         );
       });
     } catch (error) {
-      console.error('Erro ao inicializar SQLite no mobile:', error);
+      console.error('Erro ao inicializar SQLite Mobile:', error);
       throw error;
     }
   }
@@ -213,6 +112,7 @@ class NativeSQLiteService {
     });
   }
 
+  // ... (outros métodos do mobile - manter iguais)
   async getUserByEmail(email: string): Promise<{ success: boolean; time: number; user?: User; error?: string }> {
     const startTime = performance.now();
     
@@ -345,8 +245,14 @@ class NativeSQLiteService {
   }
 }
 
-// Escolher a implementação correta baseada na plataforma
-const SQLiteImplementation = isWeb ? new WebSQLiteSimulation() : new NativeSQLiteService();
+// Escolher a implementação correta
+let SQLiteImplementation;
+
+if (isWeb) {
+  SQLiteImplementation = new WebSQLiteService();
+} else {
+  SQLiteImplementation = new NativeSQLiteService();
+}
 
 export const SQLiteService = {
   async init(): Promise<void> {
@@ -369,8 +275,7 @@ export const SQLiteService = {
     return SQLiteImplementation.clearAll();
   },
 
-  // Método para verificar se está usando a implementação web
-  isWebSimulation(): boolean {
+  isWeb(): boolean {
     return isWeb;
   }
 };
