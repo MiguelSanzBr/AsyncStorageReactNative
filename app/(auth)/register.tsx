@@ -8,7 +8,8 @@ import {
   Alert, 
   StyleSheet,
   TextInput,
-  ActivityIndicator 
+  ActivityIndicator,
+  Image
 } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import Checkbox from '../../components/Checkbox';
@@ -42,8 +43,8 @@ export default function RegisterScreen() {
   const [selectedStorage, setSelectedStorage] = useState<StorageType>('asyncStorage');
   const [performanceResults, setPerformanceResults] = useState<PerformanceResult[]>([]);
   const [sqliteAvailable, setSqliteAvailable] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(true); // 🌙 modo escuro/claro
 
-  // Inicializar SQLite com tratamento de erro
   useEffect(() => {
     const initializeSQLite = async () => {
       try {
@@ -59,7 +60,6 @@ export default function RegisterScreen() {
         );
       }
     };
-
     initializeSQLite();
   }, []);
 
@@ -99,12 +99,11 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!validateForm()) return;
-
     setLoading(true);
-    
+
     try {
       let result;
-      
+
       if (selectedStorage === 'asyncStorage') {
         result = await AsyncStorageService.saveUser({
           name: formData.name.trim(),
@@ -112,13 +111,12 @@ export default function RegisterScreen() {
           password: formData.password,
         });
       } else {
-        // Verificar se SQLite está disponível
         if (!sqliteAvailable) {
           Alert.alert('Erro', 'SQLite não está disponível. Use AsyncStorage.');
           setLoading(false);
           return;
         }
-        
+
         result = await SQLiteService.saveUser({
           name: formData.name.trim(),
           email: formData.email.trim(),
@@ -149,7 +147,6 @@ export default function RegisterScreen() {
                   password: '',
                   confirmPassword: '',
                 });
-                // router.replace('/(tabs)');
               }
             }
           ]
@@ -167,19 +164,17 @@ export default function RegisterScreen() {
 
   const handleTestPerformance = async () => {
     if (!validateForm()) return;
-
     setLoading(true);
-    
+
     try {
       const testResults: PerformanceResult[] = [];
 
-      // Testar AsyncStorage
       const asyncResult = await AsyncStorageService.saveUser({
         name: formData.name.trim(),
         email: formData.email.trim() + '_async',
         password: formData.password,
       });
-      
+
       testResults.push({
         storageType: 'asyncStorage',
         time: asyncResult.time,
@@ -187,14 +182,13 @@ export default function RegisterScreen() {
         message: asyncResult.success ? 'AsyncStorage: OK' : asyncResult.error
       });
 
-      // Testar SQLite apenas se estiver disponível
       if (sqliteAvailable) {
         const sqliteResult = await SQLiteService.saveUser({
           name: formData.name.trim(),
           email: formData.email.trim() + '_sqlite',
           password: formData.password,
         });
-        
+
         testResults.push({
           storageType: 'sqlite',
           time: sqliteResult.time,
@@ -218,7 +212,6 @@ export default function RegisterScreen() {
           [{ text: 'OK' }]
         );
       }
-
     } catch (error) {
       console.error('Erro no teste de desempenho:', error);
       Alert.alert('Erro', 'Falha no teste de desempenho.');
@@ -227,327 +220,240 @@ export default function RegisterScreen() {
     }
   };
 
+  // Tema dinâmico
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        <View style={styles.card}>
-          <View style={styles.header}>
-            <Text style={styles.title}>Criar conta</Text>
-            <Text style={styles.subtitle}>Preencha os dados e escolha o armazenamento</Text>
-            
-            {!sqliteAvailable && (
-              <View style={styles.warningBanner}>
-                <Text style={styles.warningText}>
-                  ⚠️ SQLite não disponível. Usando AsyncStorage.
-                </Text>
-              </View>
-            )}
-          </View>
+    <View style={[styles.gradient, { backgroundColor: theme.background }]}>
+      {/* Botão modo escuro/claro */}
+      <TouchableOpacity 
+        style={styles.themeButton} 
+        onPress={() => setIsDarkMode(!isDarkMode)}
+      >
+        <Text style={{ fontSize: 20 }}>
+          {isDarkMode ? '☀️' : '🌙'}
+        </Text>
+      </TouchableOpacity>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Nome completo</Text>
-            <TextInput
-              style={[styles.input, errors.name && styles.inputError]}
-              placeholder="Seu nome"
-              placeholderTextColor="#9ca3af"
-              value={formData.name}
-              onChangeText={(text) => setFormData({ ...formData, name: text })}
-            />
-            {errors.name ? <Text style={styles.errorText}>{errors.name}</Text> : null}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={[styles.input, errors.email && styles.inputError]}
-              placeholder="seu@email.com"
-              placeholderTextColor="#9ca3af"
-              value={formData.email}
-              onChangeText={(text) => setFormData({ ...formData, email: text })}
-              autoCapitalize="none"
-              keyboardType="email-address"
-            />
-            {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Senha</Text>
-            <TextInput
-              style={[styles.input, errors.password && styles.inputError]}
-              placeholder="Sua senha"
-              placeholderTextColor="#9ca3af"
-              value={formData.password}
-              onChangeText={(text) => setFormData({ ...formData, password: text })}
-              secureTextEntry
-            />
-            {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Confirmar senha</Text>
-            <TextInput
-              style={[styles.input, errors.confirmPassword && styles.inputError]}
-              placeholder="Confirme sua senha"
-              placeholderTextColor="#9ca3af"
-              value={formData.confirmPassword}
-              onChangeText={(text) => setFormData({ ...formData, confirmPassword: text })}
-              secureTextEntry
-            />
-            {errors.confirmPassword ? <Text style={styles.errorText}>{errors.confirmPassword}</Text> : null}
-          </View>
-
-          {/* Seção de escolha de armazenamento */}
-          <View style={styles.storageSection}>
-            <Text style={styles.sectionTitle}>Escolha o Armazenamento</Text>
-            
-            <Checkbox
-              label="AsyncStorage"
-              description="Armazenamento simples baseado em chave-valor. Ideal para dados pequenos."
-              value={selectedStorage === 'asyncStorage'}
-              onValueChange={(value) => value && setSelectedStorage('asyncStorage')}
-            />
-            
-            <Checkbox
-              label="SQLite"
-              description="Banco de dados relacional. Ideal para dados complexos e consultas avançadas."
-              value={selectedStorage === 'sqlite'}
-              onValueChange={(value) => value && setSelectedStorage('sqlite')}
-              disabled={!sqliteAvailable}
-            />
-            
-            {!sqliteAvailable && (
-              <Text style={styles.disabledText}>
-                SQLite não está disponível no momento
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.container}>
+          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            <View style={styles.header}>
+              <Image 
+                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' }} 
+                style={styles.avatar}
+              />
+              <Text style={[styles.title, { color: theme.textPrimary }]}>Criar conta</Text>
+              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+                Preencha os dados e escolha o armazenamento
               </Text>
-            )}
-          </View>
 
-          {/* Resultados de desempenho */}
-          {performanceResults.length > 0 && (
-            <View style={styles.performanceSection}>
-              <Text style={styles.sectionTitle}>Resultados de Desempenho</Text>
-              {performanceResults.map((result, index) => (
-                <View key={index} style={styles.performanceResult}>
-                  <Text style={[
-                    styles.performanceText,
-                    result.success ? styles.performanceSuccess : styles.performanceError
-                  ]}>
-                    {result.storageType === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}: 
-                    {result.time.toFixed(2)}ms - {result.success ? '✅' : '❌'} {result.message}
+              {!sqliteAvailable && (
+                <View style={[styles.warningBanner, { borderColor: theme.warningBorder }]}>
+                  <Text style={[styles.warningText, { color: theme.warning }]}>
+                    ⚠️ SQLite não disponível. Usando AsyncStorage.
                   </Text>
                 </View>
-              ))}
-            </View>
-          )}
-
-          <View style={styles.buttonsContainer}>
-            <TouchableOpacity 
-              style={[
-                styles.button, 
-                styles.primaryButton, 
-                loading && styles.buttonDisabled,
-                !sqliteAvailable && selectedStorage === 'sqlite' && styles.buttonDisabled
-              ]}
-              onPress={handleRegister}
-              disabled={loading || (!sqliteAvailable && selectedStorage === 'sqlite')}
-            >
-              {loading ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text style={styles.buttonText}>
-                  {!sqliteAvailable && selectedStorage === 'sqlite' 
-                    ? 'SQLite Indisponível' 
-                    : `Cadastrar com ${selectedStorage === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}`
-                  }
-                </Text>
               )}
-            </TouchableOpacity>
+            </View>
 
-            <TouchableOpacity 
-              style={[styles.button, styles.secondaryButton, loading && styles.buttonDisabled]}
-              onPress={handleTestPerformance}
-              disabled={loading}
-            >
-              <Text style={styles.secondaryButtonText}>
-                Testar Desempenho {sqliteAvailable ? '(Ambos)' : '(AsyncStorage)'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+            {/* Inputs */}
+            {['name', 'email', 'password', 'confirmPassword'].map((field, idx) => (
+              <View key={idx} style={styles.inputContainer}>
+                <Text style={[styles.label, { color: theme.textSecondary }]}>
+                  {field === 'name' ? 'Nome completo' :
+                   field === 'email' ? 'Email' :
+                   field === 'password' ? 'Senha' : 'Confirmar senha'}
+                </Text>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary },
+                    errors[field as keyof typeof errors] && styles.inputError
+                  ]}
+                  placeholder={
+                    field === 'name' ? 'Seu nome' :
+                    field === 'email' ? 'seu@email.com' :
+                    field === 'password' ? 'Sua senha' : 'Confirme sua senha'
+                  }
+                  placeholderTextColor={theme.placeholder}
+                  value={formData[field as keyof typeof formData]}
+                  onChangeText={(text) => setFormData({ ...formData, [field]: text })}
+                  autoCapitalize={field === 'email' ? 'none' : 'words'}
+                  secureTextEntry={field.includes('password')}
+                />
+                {errors[field as keyof typeof errors] ? (
+                  <Text style={styles.errorText}>{errors[field as keyof typeof errors]}</Text>
+                ) : null}
+              </View>
+            ))}
 
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Já tem uma conta? </Text>
-            <Link href="/(auth)/login" asChild>
-              <TouchableOpacity>
-                <Text style={styles.footerLink}>Fazer login</Text>
+            {/* Escolha de armazenamento */}
+            <View style={styles.storageSection}>
+              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Escolha o Armazenamento</Text>
+
+              <Checkbox
+                label="AsyncStorage"
+                description="Armazenamento simples baseado em chave-valor. Ideal para dados pequenos."
+                value={selectedStorage === 'asyncStorage'}
+                onValueChange={(value) => value && setSelectedStorage('asyncStorage')}
+              />
+
+              <Checkbox
+                label="SQLite"
+                description="Banco de dados relacional. Ideal para dados complexos e consultas avançadas."
+                value={selectedStorage === 'sqlite'}
+                onValueChange={(value) => value && setSelectedStorage('sqlite')}
+                disabled={!sqliteAvailable}
+              />
+
+              {!sqliteAvailable && (
+                <Text style={styles.disabledText}>SQLite não está disponível no momento</Text>
+              )}
+            </View>
+
+            {/* Resultados */}
+            {performanceResults.length > 0 && (
+              <View style={styles.performanceSection}>
+                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Resultados de Desempenho</Text>
+                {performanceResults.map((result, index) => (
+                  <View key={index} style={styles.performanceResult}>
+                    <Text style={[
+                      styles.performanceText,
+                      result.success ? styles.performanceSuccess : styles.performanceError
+                    ]}>
+                      {result.storageType === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}: 
+                      {result.time.toFixed(2)}ms - {result.success ? '✅' : '❌'} {result.message}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+
+            {/* Botões */}
+            <View style={styles.buttonsContainer}>
+              <TouchableOpacity 
+                style={[styles.button, styles.primaryButton, { backgroundColor: theme.buttonBg }, loading && styles.buttonDisabled]}
+                onPress={handleRegister}
+                disabled={loading}
+              >
+                {loading ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <Text style={styles.buttonText}>
+                    Cadastrar com {selectedStorage === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}
+                  </Text>
+                )}
               </TouchableOpacity>
-            </Link>
+
+              <TouchableOpacity 
+                style={[styles.button, styles.secondaryButton, { borderColor: theme.buttonBorder }]}
+                onPress={handleTestPerformance}
+                disabled={loading}
+              >
+                <Text style={[styles.secondaryButtonText, { color: theme.link }]}>
+                  Testar Desempenho {sqliteAvailable ? '(Ambos)' : '(AsyncStorage)'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.footer}>
+              <Text style={[styles.footerText, { color: theme.textSecondary }]}>Já tem uma conta? </Text>
+              <Link href="/(auth)/login" asChild>
+                <TouchableOpacity>
+                  <Text style={[styles.footerLink, { color: theme.link }]}>Fazer login</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
           </View>
         </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
+// ---------- Temas ----------
+const darkTheme = {
+  background: '#0f0b1a',
+  card: 'rgba(255,255,255,0.06)',
+  border: 'rgba(255,255,255,0.1)',
+  textPrimary: '#ffffff',
+  textSecondary: '#cbd5e1',
+  inputBg: 'rgba(255,255,255,0.05)',
+  inputBorder: 'rgba(255,255,255,0.2)',
+  placeholder: '#94a3b8',
+  link: '#93c5fd',
+  buttonBg: 'rgba(59,130,246,0.6)',
+  buttonBorder: '#2563eb',
+  warning: '#facc15',
+  warningBorder: '#fcd34d'
+};
+
+const lightTheme = {
+  background: '#f1f5f9',
+  card: '#ffffff',
+  border: '#e2e8f0',
+  textPrimary: '#111827',
+  textSecondary: '#475569',
+  inputBg: '#f8fafc',
+  inputBorder: '#cbd5e1',
+  placeholder: '#94a3b8',
+  link: '#2563eb',
+  buttonBg: '#2563eb',
+  buttonBorder: '#2563eb',
+  warning: '#b45309',
+  warningBorder: '#fbbf24'
+};
+
+// ---------- Estilos ----------
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    backgroundColor: '#f9fafb',
+  gradient: { flex: 1 },
+  themeButton: {
+    position: 'absolute',
+    top: 50,
+    right: 30,
+    zIndex: 999,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 20,
+    padding: 6,
   },
-  container: {
-    flex: 1,
-    paddingHorizontal: 24,
-    justifyContent: 'center',
-  },
-   card: {
-  backgroundColor: 'white',
-  borderRadius: 16,
-  padding: 24,
-  boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-  elevation: 4, // Keep this for Android
-},
-  header: {
-    marginBottom: 32,
-    alignItems: 'center',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    color: '#6b7280',
-    marginBottom: 8,
-  },
-  warningBanner: {
-    backgroundColor: '#fef3cd',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#f59e0b',
-    marginTop: 8,
-  },
-  warningText: {
-    color: '#92400e',
-    fontSize: 14,
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  inputContainer: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
-    marginBottom: 8,
-  },
-  input: {
+  scrollContainer: { flexGrow: 1, justifyContent: 'center', paddingVertical: 80 },
+  container: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+  card: {
     width: '100%',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    maxWidth: 420,
+    borderRadius: 20,
+    padding: 24,
     borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: 'white',
-    borderColor: '#d1d5db',
-    color: '#111827',
-    fontSize: 16,
+    elevation: 8,
   },
-  inputError: {
-    borderColor: '#ef4444',
-  },
-  errorText: {
-    color: '#ef4444',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  storageSection: {
-    marginBottom: 20,
-    padding: 16,
-    backgroundColor: '#f8fafc',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-  },
-  performanceSection: {
-    marginBottom: 20,
-    padding: 16,
-    backgroundColor: '#f0f9ff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#bae6fd',
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1e293b',
-    marginBottom: 12,
-  },
-  performanceResult: {
-    marginBottom: 8,
-  },
-  performanceText: {
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  performanceSuccess: {
-    color: '#059669',
-  },
-  performanceError: {
-    color: '#dc2626',
-  },
-  disabledText: {
-    fontSize: 12,
-    color: '#ef4444',
-    fontStyle: 'italic',
-    marginTop: 8,
-  },
-  buttonsContainer: {
-    gap: 12,
-  },
-  button: {
-    width: '100%',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButton: {
-    backgroundColor: '#2563eb',
-  },
-  secondaryButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: '#2563eb',
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  secondaryButtonText: {
-    color: '#2563eb',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  footerText: {
-    color: '#6b7280',
-    fontSize: 14,
-  },
-  footerLink: {
-    color: '#2563eb',
-    fontWeight: '600',
-    fontSize: 14,
-  },
+  header: { alignItems: 'center', marginBottom: 24 },
+  avatar: { width: 80, height: 80, borderRadius: 40, marginBottom: 16 },
+  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 4 },
+  subtitle: { fontSize: 15 },
+  warningBanner: { padding: 10, borderRadius: 8, borderWidth: 1, marginTop: 8 },
+  warningText: { textAlign: 'center' },
+  inputContainer: { marginBottom: 16 },
+  label: { fontSize: 14, marginBottom: 6 },
+  input: { width: '100%', paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderRadius: 12 },
+  inputError: { borderColor: '#ef4444' },
+  errorText: { color: '#ef4444', fontSize: 12, marginTop: 4 },
+  storageSection: { marginBottom: 20, padding: 14, borderRadius: 12, borderWidth: 1 },
+  sectionTitle: { fontSize: 15, fontWeight: '600', marginBottom: 8 },
+  performanceSection: { marginBottom: 20, padding: 14, borderRadius: 12, borderWidth: 1 },
+  performanceResult: { marginBottom: 8 },
+  performanceText: { fontSize: 13 },
+  performanceSuccess: { color: '#22c55e' },
+  performanceError: { color: '#ef4444' },
+  buttonsContainer: { gap: 10 },
+  button: { width: '100%', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  primaryButton: {},
+  secondaryButton: { backgroundColor: 'transparent', borderWidth: 1 },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: '#fff', fontWeight: '600' },
+  secondaryButtonText: { fontWeight: '600' },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  footerText: { fontSize: 14 },
+  footerLink: { fontWeight: '600' },
+  disabledText: { fontSize: 12, color: '#ef4444', fontStyle: 'italic' },
 });
