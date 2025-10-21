@@ -1,4 +1,3 @@
-// app/(auth)/login.tsx
 import React, { useState, useEffect } from "react";
 import {
   View,
