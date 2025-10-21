@@ -26,47 +26,74 @@ export class WebSQLiteService {
   private db: SQLJSDatabase | null = null;
   private initialized = false;
   private SQL: SQLJSModule | null = null;
+  private readonly STORAGE_KEY = 'sqlite_database';
 
-async init(): Promise<void> {
-  try {
-    if (typeof window === 'undefined') {
-      throw new Error('Ambiente web não detectado');
+  async init(): Promise<void> {
+    try {
+      if (typeof window === 'undefined') {
+        throw new Error('Ambiente web não detectado');
+      }
+
+      // Importa initSqlJs dinamicamente
+      const initSqlJs = (await import('sql.js')).default;
+
+      // Inicializa o SQL.js
+      this.SQL = await initSqlJs({
+        locateFile: (file) => `https://sql.js.org/dist/${file}`
+      });
+
+      if (!this.SQL?.Database) {
+        throw new Error('SQL.js não carregado corretamente');
+      }
+
+      // Tenta carregar dados salvos do localStorage
+      let savedData = null;
+      try {
+        const savedDataString = localStorage.getItem(this.STORAGE_KEY);
+        if (savedDataString) {
+          const arrayBuffer = Uint8Array.from(JSON.parse(savedDataString));
+          savedData = arrayBuffer;
+          console.log('📂 Dados do SQLite carregados do localStorage');
+        }
+      } catch (error) {
+        console.warn('⚠️ Não foi possível carregar dados salvos:', error);
+      }
+
+      // Cria uma instância do banco com dados salvos ou vazio
+      this.db = savedData ? new this.SQL.Database(savedData) : new this.SQL.Database();
+
+      // Cria a tabela
+      this.db.run(`
+        CREATE TABLE IF NOT EXISTS users (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          email TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          createdAt TEXT NOT NULL
+        );
+      `);
+
+      this.initialized = true;
+      console.log('SQLite Web inicializado com sucesso');
+    } catch (error) {
+      console.error('Erro ao inicializar SQLite Web:', error);
+      throw error;
     }
-
-    // Importa initSqlJs dinamicamente
-    const initSqlJs = (await import('sql.js')).default;
-
-    // Inicializa o SQL.js (pode configurar o locateFile para carregar o .wasm corretamente)
-    this.SQL = await initSqlJs({
-      locateFile: (file) => `https://sql.js.org/dist/${file}`
-    });
-
-    if (!this.SQL?.Database) {
-      throw new Error('SQL.js não carregado corretamente');
-    }
-
-    // Cria uma instância do banco
-    this.db = new this.SQL.Database();
-
-    // Cria a tabela
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        name TEXT NOT NULL,
-        email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
-        createdAt TEXT NOT NULL
-      );
-    `);
-
-    this.initialized = true;
-    console.log('SQLite Web inicializado com sucesso');
-  } catch (error) {
-    console.error('Erro ao inicializar SQLite Web:', error);
-    throw error;
   }
-}
 
+  // Método para salvar no localStorage
+  private saveToLocalStorage(): void {
+    if (this.db && this.initialized) {
+      try {
+        const exportedData = this.db.export();
+        const dataString = JSON.stringify(Array.from(exportedData));
+        localStorage.setItem(this.STORAGE_KEY, dataString);
+        console.log('💾 Dados salvos no localStorage');
+      } catch (error) {
+        console.warn('⚠️ Não foi possível salvar dados no localStorage:', error);
+      }
+    }
+  }
 
   async saveUser(user: Omit<User, 'id' | 'createdAt'>): Promise<{ success: boolean; time: number; user?: User; error?: string }> {
     const startTime = performance.now();
@@ -113,6 +140,9 @@ async init(): Promise<void> {
       
       stmt.step();
       stmt.free();
+
+      // SALVAR NO LOCALSTORAGE APÓS INSERIR
+      this.saveToLocalStorage();
 
       const endTime = performance.now();
       return { 
@@ -230,6 +260,8 @@ async init(): Promise<void> {
 
     try {
       this.db.run('DELETE FROM users');
+      // LIMPAR LOCALSTORAGE TAMBÉM
+      localStorage.removeItem(this.STORAGE_KEY);
       return { success: true };
     } catch (error: any) {
       return { 
@@ -252,6 +284,7 @@ async init(): Promise<void> {
     }
     if (this.SQL) {
       this.db = new this.SQL.Database(data);
+      this.saveToLocalStorage();
     }
   }
 

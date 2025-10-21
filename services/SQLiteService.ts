@@ -56,61 +56,89 @@ class NativeSQLiteService {
     }
   }
 
-  async saveUser(user: Omit<User, 'id' | 'createdAt'>): Promise<{ success: boolean; time: number; user?: User; error?: string }> {
-    const startTime = performance.now();
-    
-    if (!this.initialized) {
-      const endTime = performance.now();
-      return {
-        success: false,
-        time: endTime - startTime,
-        error: 'SQLite não inicializado'
-      };
-    }
+// No NativeSQLiteService, substitua o método saveUser:
+async saveUser(user: Omit<User, 'id' | 'createdAt'>): Promise<{ success: boolean; time: number; user?: User; error?: string }> {
+  const startTime = performance.now();
+  
+  if (!this.initialized) {
+    const endTime = performance.now();
+    return {
+      success: false,
+      time: endTime - startTime,
+      error: 'SQLite não inicializado'
+    };
+  }
 
-    return new Promise((resolve) => {
-      this.db.transaction(
-        (tx: any) => {
-          const newUser: User = {
-            ...user,
-            id: Date.now().toString(),
-            createdAt: new Date().toISOString(),
-          };
-
-          tx.executeSql(
-            `INSERT INTO users (id, name, email, password, createdAt) 
-             VALUES (?, ?, ?, ?, ?)`,
-            [newUser.id, newUser.name, newUser.email, newUser.password, newUser.createdAt],
-            (_: any, result: any) => {
-              const endTime = performance.now();
-              resolve({ 
-                success: true, 
-                time: endTime - startTime,
-                user: newUser
-              });
-            },
-            (_: any, error: any) => {
+  return new Promise((resolve) => {
+    this.db.transaction(
+      (tx: any) => {
+        // PRIMEIRO verificar se o email já existe
+        tx.executeSql(
+          'SELECT * FROM users WHERE email = ?',
+          [user.email],
+          (_: any, { rows }: any) => {
+            if (rows.length > 0) {
               const endTime = performance.now();
               resolve({ 
                 success: false, 
                 time: endTime - startTime,
-                error: error.message
+                error: 'Email já cadastrado'
               });
-              return false;
+              return;
             }
-          );
-        },
-        (error: any) => {
-          const endTime = performance.now();
-          resolve({ 
-            success: false, 
-            time: endTime - startTime,
-            error: error.message
-          });
-        }
-      );
-    });
-  }
+
+            // Se não existe, então inserir
+            const newUser: User = {
+              ...user,
+              id: Date.now().toString(),
+              createdAt: new Date().toISOString(),
+            };
+
+            tx.executeSql(
+              `INSERT INTO users (id, name, email, password, createdAt) 
+               VALUES (?, ?, ?, ?, ?)`,
+              [newUser.id, newUser.name, newUser.email, newUser.password, newUser.createdAt],
+              (_: any, result: any) => {
+                const endTime = performance.now();
+                resolve({ 
+                  success: true, 
+                  time: endTime - startTime,
+                  user: newUser
+                });
+              },
+              (_: any, error: any) => {
+                const endTime = performance.now();
+                resolve({ 
+                  success: false, 
+                  time: endTime - startTime,
+                  error: error.message
+                });
+                return false;
+              }
+            );
+          },
+          (_: any, error: any) => {
+            const endTime = performance.now();
+            resolve({ 
+              success: false, 
+              time: endTime - startTime,
+              error: error.message
+            });
+            return false;
+          }
+        );
+      },
+      (error: any) => {
+        const endTime = performance.now();
+        resolve({ 
+          success: false, 
+          time: endTime - startTime,
+          error: error.message
+        });
+      }
+    );
+  });
+}
 
   // ... (outros métodos do mobile - manter iguais)
   async getUserByEmail(email: string): Promise<{ success: boolean; time: number; user?: User; error?: string }> {
