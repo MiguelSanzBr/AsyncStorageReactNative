@@ -8,7 +8,7 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
-  Image
+  Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, useRouter } from "expo-router";
@@ -281,27 +281,41 @@ export default function RegisterScreen() {
     <View style={[styles.gradient, { backgroundColor: theme.background }]}>
       {/* Botão modo escuro/claro */}
       <TouchableOpacity
-              style={styles.themeButton}
-              onPress={() => setIsDarkMode(!isDarkMode)}
-            >
-              <Text style={{ fontSize: 20 }}>{isDarkMode ? "☀️" : "🌙"}</Text>
-        </TouchableOpacity>
+        style={styles.themeButton}
+        onPress={() => setIsDarkMode(!isDarkMode)}
+      >
+        <Text style={{ fontSize: 20 }}>{isDarkMode ? "☀️" : "🌙"}</Text>
+      </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.container}>
-          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
             <View style={styles.header}>
-              <Image 
-                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' }} 
+              <Image
+                source={{
+                  uri: "https://cdn-icons-png.flaticon.com/512/847/847969.png",
+                }}
                 style={styles.avatar}
               />
-              <Text style={[styles.title, { color: theme.textPrimary }]}>Criar conta</Text>
+              <Text style={[styles.title, { color: theme.textPrimary }]}>
+                Criar conta
+              </Text>
               <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
                 Preencha os dados e escolha o armazenamento
               </Text>
 
               {!sqliteAvailable && (
-                <View style={[styles.warningBanner, { borderColor: theme.warningBorder }]}>
+                <View
+                  style={[
+                    styles.warningBanner,
+                    { borderColor: theme.warningBorder },
+                  ]}
+                >
                   <Text style={[styles.warningText, { color: theme.warning }]}>
                     ⚠️ SQLite não disponível. Usando AsyncStorage.
                   </Text>
@@ -310,72 +324,111 @@ export default function RegisterScreen() {
             </View>
 
             {/* Inputs */}
-            {['name', 'email', 'password', 'confirmPassword'].map((field, idx) => (
-              <View key={idx} style={styles.inputContainer}>
-                <Text style={[styles.label, { color: theme.textSecondary }]}>
-                  {field === 'name' ? 'Nome completo' :
-                   field === 'email' ? 'Email' :
-                   field === 'password' ? 'Senha' : 'Confirmar senha'}
-                </Text>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary },
-                    errors[field as keyof typeof errors] && styles.inputError
-                  ]}
-                  placeholder={
-                    field === 'name' ? 'Seu nome' :
-                    field === 'email' ? 'seu@email.com' :
-                    field === 'password' ? 'Sua senha' : 'Confirme sua senha'
-                  }
-                  placeholderTextColor={theme.placeholder}
-                  value={formData[field as keyof typeof formData]}
-                  onChangeText={(text) => setFormData({ ...formData, [field]: text })}
-                  autoCapitalize={field === 'email' ? 'none' : 'words'}
-                  secureTextEntry={field.includes('password')}
-                />
-                {errors[field as keyof typeof errors] ? (
-                  <Text style={styles.errorText}>{errors[field as keyof typeof errors]}</Text>
-                ) : null}
-              </View>
-            ))}
+            {["name", "email", "password", "confirmPassword"].map(
+              (field, idx) => (
+                <View key={idx} style={styles.inputContainer}>
+                  <Text style={[styles.label, { color: theme.textSecondary }]}>
+                    {field === "name"
+                      ? "Nome completo"
+                      : field === "email"
+                      ? "Email"
+                      : field === "password"
+                      ? "Senha"
+                      : "Confirmar senha"}
+                  </Text>
+                  <TextInput
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.inputBg,
+                        borderColor: theme.inputBorder,
+                        color: theme.textPrimary,
+                      },
+                      errors[field as keyof typeof errors] && styles.inputError,
+                    ]}
+                    placeholder={
+                      field === "name"
+                        ? "Seu nome"
+                        : field === "email"
+                        ? "seu@email.com"
+                        : field === "password"
+                        ? "Sua senha"
+                        : "Confirme sua senha"
+                    }
+                    placeholderTextColor={theme.placeholder}
+                    value={formData[field as keyof typeof formData]}
+                    onChangeText={(text) =>
+                      setFormData({ ...formData, [field]: text })
+                    }
+                    autoCapitalize={field === "email" ? "none" : "words"}
+                    secureTextEntry={
+                      field === "password" || field === "confirmPassword"
+                    }
+                  />
+                  {errors[field as keyof typeof errors] ? (
+                    <Text style={styles.errorText}>
+                      {errors[field as keyof typeof errors]}
+                    </Text>
+                  ) : null}
+                </View>
+              )
+            )}
 
             {/* Escolha de armazenamento */}
             <View style={styles.storageSection}>
-              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Escolha o Armazenamento</Text>
+              <Text
+                style={[styles.sectionTitle, { color: theme.textSecondary }]}
+              >
+                Escolha o Armazenamento
+              </Text>
 
               <Checkbox
                 label="AsyncStorage"
                 description="Armazenamento simples baseado em chave-valor. Ideal para dados pequenos."
-                value={selectedStorage === 'asyncStorage'}
-                onValueChange={(value) => value && setSelectedStorage('asyncStorage')}
+                value={selectedStorage === "asyncStorage"}
+                onValueChange={(value) =>
+                  value && setSelectedStorage("asyncStorage")
+                }
               />
 
               <Checkbox
                 label="SQLite"
                 description="Banco de dados relacional. Ideal para dados complexos e consultas avançadas."
-                value={selectedStorage === 'sqlite'}
-                onValueChange={(value) => value && setSelectedStorage('sqlite')}
+                value={selectedStorage === "sqlite"}
+                onValueChange={(value) => value && setSelectedStorage("sqlite")}
                 disabled={!sqliteAvailable}
               />
 
               {!sqliteAvailable && (
-                <Text style={styles.disabledText}>SQLite não está disponível no momento</Text>
+                <Text style={styles.disabledText}>
+                  SQLite não está disponível no momento
+                </Text>
               )}
             </View>
 
             {/* Resultados */}
             {performanceResults.length > 0 && (
               <View style={styles.performanceSection}>
-                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Resultados de Desempenho</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.textSecondary }]}
+                >
+                  Resultados de Desempenho
+                </Text>
                 {performanceResults.map((result, index) => (
                   <View key={index} style={styles.performanceResult}>
-                    <Text style={[
-                      styles.performanceText,
-                      result.success ? styles.performanceSuccess : styles.performanceError
-                    ]}>
-                      {result.storageType === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}: 
-                      {result.time.toFixed(2)}ms - {result.success ? '✅' : '❌'} {result.message}
+                    <Text
+                      style={[
+                        styles.performanceText,
+                        result.success
+                          ? styles.performanceSuccess
+                          : styles.performanceError,
+                      ]}
+                    >
+                      {result.storageType === "asyncStorage"
+                        ? "AsyncStorage"
+                        : "SQLite"}
+                      :{result.time.toFixed(2)}ms -{" "}
+                      {result.success ? "✅" : "❌"} {result.message}
                     </Text>
                   </View>
                 ))}
@@ -384,8 +437,13 @@ export default function RegisterScreen() {
 
             {/* Botões */}
             <View style={styles.buttonsContainer}>
-              <TouchableOpacity 
-                style={[styles.button, styles.primaryButton, { backgroundColor: theme.buttonBg }, loading && styles.buttonDisabled]}
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.primaryButton,
+                  { backgroundColor: theme.buttonBg },
+                  loading && styles.buttonDisabled,
+                ]}
                 onPress={handleRegister}
                 disabled={loading}
               >
@@ -393,27 +451,41 @@ export default function RegisterScreen() {
                   <ActivityIndicator color="white" />
                 ) : (
                   <Text style={styles.buttonText}>
-                    Cadastrar com {selectedStorage === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}
+                    Cadastrar com{" "}
+                    {selectedStorage === "asyncStorage"
+                      ? "AsyncStorage"
+                      : "SQLite"}
                   </Text>
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[styles.button, styles.secondaryButton, { borderColor: theme.buttonBorder }]}
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.secondaryButton,
+                  { borderColor: theme.buttonBorder },
+                ]}
                 onPress={handleTestPerformance}
                 disabled={loading}
               >
-                <Text style={[styles.secondaryButtonText, { color: theme.link }]}>
-                  Testar Desempenho {sqliteAvailable ? '(Ambos)' : '(AsyncStorage)'}
+                <Text
+                  style={[styles.secondaryButtonText, { color: theme.link }]}
+                >
+                  Testar Desempenho{" "}
+                  {sqliteAvailable ? "(Ambos)" : "(AsyncStorage)"}
                 </Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: theme.textSecondary }]}>Já tem uma conta? </Text>
+              <Text style={[styles.footerText, { color: theme.textSecondary }]}>
+                Já tem uma conta?{" "}
+              </Text>
               <Link href="/(auth)/login" asChild>
                 <TouchableOpacity>
-                  <Text style={[styles.footerLink, { color: theme.link }]}>Fazer login</Text>
+                  <Text style={[styles.footerLink, { color: theme.link }]}>
+                    Fazer login
+                  </Text>
                 </TouchableOpacity>
               </Link>
             </View>
@@ -426,86 +498,115 @@ export default function RegisterScreen() {
 
 // ---------- Temas ----------
 const darkTheme = {
-  background: '#0f0b1a',
-  card: 'rgba(255,255,255,0.06)',
-  border: 'rgba(255,255,255,0.1)',
-  textPrimary: '#ffffff',
-  textSecondary: '#cbd5e1',
-  inputBg: 'rgba(255,255,255,0.05)',
-  inputBorder: 'rgba(255,255,255,0.2)',
-  placeholder: '#94a3b8',
-  link: '#93c5fd',
-  buttonBg: 'rgba(59,130,246,0.6)',
-  buttonBorder: '#2563eb',
-  warning: '#facc15',
-  warningBorder: '#fcd34d'
+  background: "#0f0b1a",
+  card: "rgba(255,255,255,0.06)",
+  border: "rgba(255,255,255,0.1)",
+  textPrimary: "#ffffff",
+  textSecondary: "#cbd5e1",
+  inputBg: "rgba(255,255,255,0.05)",
+  inputBorder: "rgba(255,255,255,0.2)",
+  placeholder: "#94a3b8",
+  link: "#93c5fd",
+  buttonBg: "rgba(59,130,246,0.6)",
+  buttonBorder: "#2563eb",
+  warning: "#facc15",
+  warningBorder: "#fcd34d",
 };
 
 const lightTheme = {
-  background: '#f1f5f9',
-  card: '#ffffff',
-  border: '#e2e8f0',
-  textPrimary: '#111827',
-  textSecondary: '#475569',
-  inputBg: '#f8fafc',
-  inputBorder: '#cbd5e1',
-  placeholder: '#94a3b8',
-  link: '#2563eb',
-  buttonBg: '#2563eb',
-  buttonBorder: '#2563eb',
-  warning: '#b45309',
-  warningBorder: '#fbbf24'
+  background: "#f1f5f9",
+  card: "#ffffff",
+  border: "#e2e8f0",
+  textPrimary: "#111827",
+  textSecondary: "#475569",
+  inputBg: "#f8fafc",
+  inputBorder: "#cbd5e1",
+  placeholder: "#94a3b8",
+  link: "#2563eb",
+  buttonBg: "#2563eb",
+  buttonBorder: "#2563eb",
+  warning: "#b45309",
+  warningBorder: "#fbbf24",
 };
 
 // ---------- Estilos ----------
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   themeButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 50,
     right: 30,
     zIndex: 999,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 20,
     padding: 6,
   },
-  scrollContainer: { flexGrow: 1, justifyContent: 'center', paddingVertical: 80 },
-  container: { alignItems: 'center', justifyContent: 'center', paddingHorizontal: 20 },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingVertical: 80,
+  },
+  container: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
+  },
   card: {
-    width: '100%',
+    width: "100%",
     maxWidth: 420,
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
     elevation: 8,
   },
-  header: { alignItems: 'center', marginBottom: 24 },
+  header: { alignItems: "center", marginBottom: 24 },
   avatar: { width: 80, height: 80, borderRadius: 40, marginBottom: 16 },
-  title: { fontSize: 26, fontWeight: 'bold', marginBottom: 4 },
+  title: { fontSize: 26, fontWeight: "bold", marginBottom: 4 },
   subtitle: { fontSize: 15 },
   warningBanner: { padding: 10, borderRadius: 8, borderWidth: 1, marginTop: 8 },
-  warningText: { textAlign: 'center' },
+  warningText: { textAlign: "center" },
   inputContainer: { marginBottom: 16 },
   label: { fontSize: 14, marginBottom: 6 },
-  input: { width: '100%', paddingHorizontal: 16, paddingVertical: 12, borderWidth: 1, borderRadius: 12 },
-  inputError: { borderColor: '#ef4444' },
-  errorText: { color: '#ef4444', fontSize: 12, marginTop: 4 },
-  storageSection: { marginBottom: 20, padding: 14, borderRadius: 12, borderWidth: 1 },
-  sectionTitle: { fontSize: 15, fontWeight: '600', marginBottom: 8 },
-  performanceSection: { marginBottom: 20, padding: 14, borderRadius: 12, borderWidth: 1 },
+  input: {
+    width: "100%",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+  },
+  inputError: { borderColor: "#ef4444" },
+  errorText: { color: "#ef4444", fontSize: 12, marginTop: 4 },
+  storageSection: {
+    marginBottom: 20,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  sectionTitle: { fontSize: 15, fontWeight: "600", marginBottom: 8 },
+  performanceSection: {
+    marginBottom: 20,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
   performanceResult: { marginBottom: 8 },
   performanceText: { fontSize: 13 },
-  performanceSuccess: { color: '#22c55e' },
-  performanceError: { color: '#ef4444' },
+  performanceSuccess: { color: "#22c55e" },
+  performanceError: { color: "#ef4444" },
   buttonsContainer: { gap: 10 },
-  button: { width: '100%', paddingVertical: 14, borderRadius: 12, alignItems: 'center' },
+  button: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+  },
   primaryButton: {},
-  secondaryButton: { backgroundColor: 'transparent', borderWidth: 1 },
+  secondaryButton: { backgroundColor: "transparent", borderWidth: 1 },
   buttonDisabled: { opacity: 0.6 },
-  buttonText: { color: '#fff', fontWeight: '600' },
-  secondaryButtonText: { fontWeight: '600' },
-  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 24 },
+  buttonText: { color: "#fff", fontWeight: "600" },
+  secondaryButtonText: { fontWeight: "600" },
+  footer: { flexDirection: "row", justifyContent: "center", marginTop: 24 },
   footerText: { fontSize: 14 },
-  footerLink: { fontWeight: '600' },
-  disabledText: { fontSize: 12, color: '#ef4444', fontStyle: 'italic' },
+  footerLink: { fontWeight: "600" },
+  disabledText: { fontSize: 12, color: "#ef4444", fontStyle: "italic" },
 });

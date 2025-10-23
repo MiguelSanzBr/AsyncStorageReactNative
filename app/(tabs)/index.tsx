@@ -1,191 +1,147 @@
 // app/index.tsx
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, StatusBar } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 
-export default function HomeScreen() {
+export default function WelcomeScreen() {
   const router = useRouter();
 
-  const handleLogout = () => {
-    router.replace('/(auth)/login');
-  };
-
   return (
-    <ScrollView contentContainerStyle={styles.scrollContainer}>
-      <View style={styles.container}>
-        
-        {/* Header com ícone de sucesso */}
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="checkmark-circle" size={80} color="#10b981" />
-          </View>
-          <Text style={styles.title}>Login Realizado com Sucesso! 🎉</Text>
-          <Text style={styles.subtitle}>
-            Você está conectado ao sistema
-          </Text>
+    <View style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#667eea" />
+      
+      {/* Header com gradiente */}
+      <View style={styles.header}>
+        <View style={styles.logoContainer}>
+          <Ionicons name="rocket" size={60} color="#fff" />
+          <Text style={styles.title}>Bem-vindo</Text>
+          <Text style={styles.subtitle}>Sua jornada começa aqui</Text>
         </View>
+      </View>
 
-        {/* Card de informações */}
-        <View style={styles.card}>
-          <View style={styles.infoSection}>
-            <Ionicons name="person" size={24} color="#2563eb" />
-            <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Status</Text>
-              <Text style={styles.infoValue}>Usuário Autenticado</Text>
-            </View>
-          </View>
+      {/* Conteúdo principal */}
+      <View style={styles.content}>
+        <Text style={styles.welcomeText}>
+          Junte-se a nós e descubra um mundo de possibilidades
+        </Text>
 
-          <View style={styles.infoSection}>
-            <Ionicons name="time" size={24} color="#2563eb" />
-            <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Sessão Ativa</Text>
-              <Text style={styles.infoValue}>{new Date().toLocaleString('pt-BR')}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoSection}>
-            <Ionicons name="shield-checkmark" size={24} color="#2563eb" />
-            <View style={styles.infoText}>
-              <Text style={styles.infoLabel}>Segurança</Text>
-              <Text style={styles.infoValue}>Conexão Protegida</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Mensagem de boas-vindas */}
-        <View style={styles.welcomeCard}>
-          <Text style={styles.welcomeTitle}>Bem-vindo de Volta! 👋</Text>
-          <Text style={styles.welcomeMessage}>
-            Sua sessão foi iniciada com sucesso. Agora você tem acesso completo 
-            às funcionalidades do aplicativo.
-          </Text>
-        </View>
-
-        {/* Botão de logout */}
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color="#ef4444" />
-          <Text style={styles.logoutButtonText}>Sair da Conta</Text>
+        {/* Botão de Login */}
+        <TouchableOpacity 
+          style={styles.loginButton}
+          onPress={() => router.push('/(auth)/login')}
+        >
+          <Ionicons name="log-in" size={24} color="#fff" />
+          <Text style={styles.buttonText}>Fazer Login</Text>
         </TouchableOpacity>
 
-        {/* Rodapé */}
+        {/* Botão de Registro */}
+        <TouchableOpacity 
+          style={styles.registerButton}
+          onPress={() => router.push('/(auth)/register')}
+        >
+          <Ionicons name="person-add" size={24} color="#667eea" />
+          <Text style={styles.registerButtonText}>Criar Conta</Text>
+        </TouchableOpacity>
+
+        {/* Links rápidos */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            Seguro • Confiável • Rápido
+            Ao continuar, você concorda com nossos{' '}
+            <Text style={styles.link}>Termos de Serviço</Text> e{' '}
+            <Text style={styles.link}>Política de Privacidade</Text>
           </Text>
         </View>
-
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: {
-    flexGrow: 1,
-    backgroundColor: '#f8fafc',
-  },
   container: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingVertical: 40,
+    backgroundColor: '#fff',
   },
   header: {
+    height: 300,
+    backgroundColor: '#667eea',
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 40,
   },
-  iconContainer: {
-    marginBottom: 20,
+  logoContainer: {
+    alignItems: 'center',
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#111827',
-    marginBottom: 12,
+    color: '#fff',
+    marginTop: 16,
   },
   subtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 8,
+  },
+  content: {
+    flex: 1,
+    padding: 24,
+    justifyContent: 'center',
+  },
+  welcomeText: {
     fontSize: 18,
     textAlign: 'center',
-    color: '#6b7280',
+    color: '#4a5568',
+    marginBottom: 40,
     lineHeight: 24,
   },
-  card: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
-    // Substituindo shadow props por boxShadow para web
-    boxShadow: '0px 2px 8px rgba(0, 0, 0, 0.1)',
-    elevation: 5, // Mantém para Android
-  },
-  infoSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
-  },
-  infoText: {
-    marginLeft: 16,
-    flex: 1,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 4,
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  welcomeCard: {
-    backgroundColor: '#dbeafe',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 24,
-    borderLeftWidth: 4,
-    borderLeftColor: '#2563eb',
-  },
-  welcomeTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1e40af',
-    marginBottom: 8,
-  },
-  welcomeMessage: {
-    fontSize: 16,
-    color: '#374151',
-    lineHeight: 22,
-  },
-  logoutButton: {
+  loginButton: {
+    backgroundColor: '#667eea',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fef2f2',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    padding: 16,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#fecaca',
-    marginBottom: 24,
+    marginBottom: 16,
+    boxShadow: '0px 4px 8px rgba(102, 126, 234, 0.3)',
+    elevation: 5,
   },
-  logoutButtonText: {
-    color: '#dc2626',
-    fontSize: 16,
+  registerButton: {
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#667eea',
+    marginBottom: 32,
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  registerButtonText: {
+    color: '#667eea',
+    fontSize: 18,
     fontWeight: '600',
     marginLeft: 8,
   },
   footer: {
-    alignItems: 'center',
-    paddingTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
+    marginTop: 'auto',
+    paddingBottom: 20,
   },
   footerText: {
-    fontSize: 14,
-    color: '#9ca3af',
+    textAlign: 'center',
+    color: '#718096',
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  link: {
+    color: '#667eea',
     fontWeight: '500',
   },
 });

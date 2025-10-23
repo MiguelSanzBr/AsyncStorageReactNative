@@ -212,9 +212,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 8,
     width: 180,
-    shadowColor: "#000",
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
+    boxShadow: '0px 0px 8px rgba(0, 0, 0, 0.3)',
   },
   menuItem: {
     paddingVertical: 10,

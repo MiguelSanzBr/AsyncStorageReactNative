@@ -8,7 +8,7 @@ import {
   StyleSheet,
   TextInput,
   ActivityIndicator,
-  Image
+  Image,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, useRouter } from "expo-router";
@@ -27,12 +27,12 @@ interface PerformanceResult {
 
 export default function LoginScreen() {
   useEffect(() => {
-  const checkLoggedUser = async () => {
-    const loggedUser = await AsyncStorage.getItem("@loggedUser");
-    if (loggedUser) router.replace("/Homescreen");
-  };
-  checkLoggedUser();
-}, []);
+    const checkLoggedUser = async () => {
+      const loggedUser = await AsyncStorage.getItem("@loggedUser");
+      if (loggedUser) router.replace("/Homescreen");
+    };
+    checkLoggedUser();
+  }, []);
 
   const router = useRouter();
   const [formData, setFormData] = useState({
@@ -51,7 +51,7 @@ export default function LoginScreen() {
   >([]);
   const [sqliteAvailable, setSqliteAvailable] = useState(true);
   const [isDarkMode, setIsDarkMode] = useState(true);
-  const [isThemeLoaded, setIsThemeLoaded] = useState(false); // 👈 controla se o tema foi carregado
+  const [isThemeLoaded, setIsThemeLoaded] = useState(false);
   const [loginSuccess, setLoginSuccess] = useState(false);
 
   // ---------- 🌙 Persistência do modo escuro ----------
@@ -102,11 +102,10 @@ export default function LoginScreen() {
   }, []);
 
   useEffect(() => {
-  if (loginSuccess) {
-    router.replace("/Homescreen");
-  }
-}, [loginSuccess]);
-
+    if (loginSuccess) {
+      router.replace("/Homescreen");
+    }
+  }, [loginSuccess]);
 
   const validateForm = () => {
     const newErrors = {
@@ -171,29 +170,29 @@ export default function LoginScreen() {
         console.log("🔑 Verificando senha...");
 
         if (result.user.password === formData.password) {
-  console.log("✅ Login bem-sucedido!");
+          console.log("✅ Login bem-sucedido!");
 
-  try {
-    await AsyncStorage.setItem("@loggedUser", result.user.name || result.user.email);
-  } catch (err) {
-    console.error("Erro ao salvar usuário logado:", err);
-  }
+          try {
+            await AsyncStorage.setItem(
+              "@loggedUser",
+              result.user.name || result.user.email
+            );
+          } catch (err) {
+            console.error("Erro ao salvar usuário logado:", err);
+          }
 
-  Alert.alert(
-    "Sucesso!",
-    `Login realizado com sucesso usando ${
-      selectedStorage === "asyncStorage" ? "AsyncStorage" : "SQLite"
-    }!\n\nTempo de busca: ${result.time.toFixed(2)}ms`
-  );
+          Alert.alert(
+            "Sucesso!",
+            `Login realizado com sucesso usando ${
+              selectedStorage === "asyncStorage" ? "AsyncStorage" : "SQLite"
+            }!\n\nTempo de busca: ${result.time.toFixed(2)}ms`
+          );
 
-  setFormData({ email: "", password: "" });
+          setFormData({ email: "", password: "" });
 
-  // 🔹 Marca que o login foi concluído → dispara o redirecionamento automático
-  setLoginSuccess(true);
-
-
-}
- else {
+          // 🔹 Marca que o login foi concluído → dispara o redirecionamento automático
+          setLoginSuccess(true);
+        } else {
           console.log("❌ Senha incorreta");
           Alert.alert("Erro", "Senha incorreta. Tente novamente.");
         }
@@ -329,9 +328,7 @@ export default function LoginScreen() {
                     { borderColor: theme.warningBorder },
                   ]}
                 >
-                  <Text
-                    style={[styles.warningText, { color: theme.warning }]}
-                  >
+                  <Text style={[styles.warningText, { color: theme.warning }]}>
                     ⚠️ SQLite não disponível. Usando AsyncStorage.
                   </Text>
                 </View>
@@ -339,69 +336,110 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Email</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>
+                Email
+              </Text>
               <TextInput
                 style={[
                   styles.input,
-                  { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary },
-                  errors.email && styles.inputError
+                  {
+                    backgroundColor: theme.inputBg,
+                    borderColor: theme.inputBorder,
+                    color: theme.textPrimary,
+                  },
+                  errors.email && styles.inputError,
                 ]}
                 placeholder="seu@email.com"
                 placeholderTextColor={theme.placeholder}
                 value={formData.email}
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, email: text })
+                }
                 autoCapitalize="none"
                 keyboardType="email-address"
               />
-              {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
+              {errors.email ? (
+                <Text style={styles.errorText}>{errors.email}</Text>
+              ) : null}
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={[styles.label, { color: theme.textSecondary }]}>Senha</Text>
+              <Text style={[styles.label, { color: theme.textSecondary }]}>
+                Senha
+              </Text>
               <TextInput
                 style={[
                   styles.input,
-                  { backgroundColor: theme.inputBg, borderColor: theme.inputBorder, color: theme.textPrimary },
-                  errors.password && styles.inputError
+                  {
+                    backgroundColor: theme.inputBg,
+                    borderColor: theme.inputBorder,
+                    color: theme.textPrimary,
+                  },
+                  errors.password && styles.inputError,
                 ]}
                 placeholder="Sua senha"
                 placeholderTextColor={theme.placeholder}
                 value={formData.password}
-                onChangeText={(text) => setFormData({ ...formData, password: text })}
+                onChangeText={(text) =>
+                  setFormData({ ...formData, password: text })
+                }
                 secureTextEntry
               />
-              {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
+              {errors.password ? (
+                <Text style={styles.errorText}>{errors.password}</Text>
+              ) : null}
             </View>
 
             <View style={styles.storageSection}>
-              <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Escolha o Armazenamento para Busca</Text>
+              <Text
+                style={[styles.sectionTitle, { color: theme.textSecondary }]}
+              >
+                Escolha o Armazenamento para Busca
+              </Text>
               <Checkbox
                 label="AsyncStorage"
                 description="Busca em armazenamento chave-valor."
-                value={selectedStorage === 'asyncStorage'}
-                onValueChange={(value) => value && setSelectedStorage('asyncStorage')}
+                value={selectedStorage === "asyncStorage"}
+                onValueChange={(value) =>
+                  value && setSelectedStorage("asyncStorage")
+                }
               />
               <Checkbox
                 label="SQLite"
                 description="Busca em banco de dados relacional."
-                value={selectedStorage === 'sqlite'}
-                onValueChange={(value) => value && setSelectedStorage('sqlite')}
+                value={selectedStorage === "sqlite"}
+                onValueChange={(value) => value && setSelectedStorage("sqlite")}
                 disabled={!sqliteAvailable}
               />
-              {!sqliteAvailable && <Text style={styles.disabledText}>SQLite não está disponível</Text>}
+              {!sqliteAvailable && (
+                <Text style={styles.disabledText}>
+                  SQLite não está disponível
+                </Text>
+              )}
             </View>
 
             {performanceResults.length > 0 && (
               <View style={styles.performanceSection}>
-                <Text style={[styles.sectionTitle, { color: theme.textSecondary }]}>Resultados de Desempenho - Busca</Text>
+                <Text
+                  style={[styles.sectionTitle, { color: theme.textSecondary }]}
+                >
+                  Resultados de Desempenho - Busca
+                </Text>
                 {performanceResults.map((result, index) => (
                   <View key={index} style={styles.performanceResult}>
-                    <Text style={[
-                      styles.performanceText,
-                      result.success ? styles.performanceSuccess : styles.performanceError
-                    ]}>
-                      {result.storageType === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}: 
-                      {result.time.toFixed(2)}ms - {result.success ? '✅' : '❌'} {result.message}
+                    <Text
+                      style={[
+                        styles.performanceText,
+                        result.success
+                          ? styles.performanceSuccess
+                          : styles.performanceError,
+                      ]}
+                    >
+                      {result.storageType === "asyncStorage"
+                        ? "AsyncStorage"
+                        : "SQLite"}
+                      :{result.time.toFixed(2)}ms -{" "}
+                      {result.success ? "✅" : "❌"} {result.message}
                     </Text>
                   </View>
                 ))}
@@ -409,12 +447,19 @@ export default function LoginScreen() {
             )}
 
             <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={[styles.linkText, { color: theme.link }]}>Esqueceu sua senha?</Text>
+              <Text style={[styles.linkText, { color: theme.link }]}>
+                Esqueceu sua senha?
+              </Text>
             </TouchableOpacity>
 
             <View style={styles.buttonsContainer}>
-              <TouchableOpacity 
-                style={[styles.button, styles.primaryButton, { backgroundColor: theme.buttonBg }, loading && styles.buttonDisabled]}
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.primaryButton,
+                  { backgroundColor: theme.buttonBg },
+                  loading && styles.buttonDisabled,
+                ]}
                 onPress={handleLogin}
                 disabled={loading}
               >
@@ -422,27 +467,40 @@ export default function LoginScreen() {
                   <ActivityIndicator color="white" />
                 ) : (
                   <Text style={styles.buttonText}>
-                    Entrar com {selectedStorage === 'asyncStorage' ? 'AsyncStorage' : 'SQLite'}
+                    Entrar com{" "}
+                    {selectedStorage === "asyncStorage"
+                      ? "AsyncStorage"
+                      : "SQLite"}
                   </Text>
                 )}
               </TouchableOpacity>
 
-              <TouchableOpacity 
-                style={[styles.button, styles.secondaryButton, { borderColor: theme.buttonBorder }]}
+              <TouchableOpacity
+                style={[
+                  styles.button,
+                  styles.secondaryButton,
+                  { borderColor: theme.buttonBorder },
+                ]}
                 onPress={handleTestPerformance}
                 disabled={loading}
               >
-                <Text style={[styles.secondaryButtonText, { color: theme.link }]}>
+                <Text
+                  style={[styles.secondaryButtonText, { color: theme.link }]}
+                >
                   Testar Desempenho (Busca)
                 </Text>
               </TouchableOpacity>
             </View>
 
             <View style={styles.footer}>
-              <Text style={[styles.footerText, { color: theme.textSecondary }]}>Não tem uma conta? </Text>
+              <Text style={[styles.footerText, { color: theme.textSecondary }]}>
+                Não tem uma conta?{" "}
+              </Text>
               <Link href="/(auth)/register" asChild>
                 <TouchableOpacity>
-                  <Text style={[styles.footerLink, { color: theme.link }]}>Cadastre-se</Text>
+                  <Text style={[styles.footerLink, { color: theme.link }]}>
+                    Cadastre-se
+                  </Text>
                 </TouchableOpacity>
               </Link>
             </View>
@@ -454,219 +512,181 @@ export default function LoginScreen() {
 }
 
 const darkTheme = {
-  background: '#0f0b1a',
-  card: 'rgba(255,255,255,0.06)',
-  border: 'rgba(255,255,255,0.1)',
-  textPrimary: '#ffffff',
-  textSecondary: '#cbd5e1',
-  inputBg: 'rgba(255,255,255,0.05)',
-  inputBorder: 'rgba(255,255,255,0.2)',
-  placeholder: '#94a3b8',
-  link: '#93c5fd',
-  buttonBg: 'rgba(59,130,246,0.6)',
-  buttonBorder: '#2563eb',
-  warning: '#facc15',
-  warningBorder: '#fcd34d'
+  background: "#0f0b1a",
+  card: "rgba(255,255,255,0.06)",
+  border: "rgba(255,255,255,0.1)",
+  textPrimary: "#ffffff",
+  textSecondary: "#cbd5e1",
+  inputBg: "rgba(255,255,255,0.05)",
+  inputBorder: "rgba(255,255,255,0.2)",
+  placeholder: "#94a3b8",
+  link: "#93c5fd",
+  buttonBg: "rgba(59,130,246,0.6)",
+  buttonBorder: "#2563eb",
+  warning: "#facc15",
+  warningBorder: "#fcd34d",
 };
 
 const lightTheme = {
-  background: '#f1f5f9',
-  card: '#ffffff',
-  border: '#e2e8f0',
-  textPrimary: '#111827',
-  textSecondary: '#475569',
-  inputBg: '#f8fafc',
-  inputBorder: '#cbd5e1',
-  placeholder: '#94a3b8',
-  link: '#2563eb',
-  buttonBg: '#2563eb',
-  buttonBorder: '#2563eb',
-  warning: '#b45309',
-  warningBorder: '#fbbf24'
+  background: "#f1f5f9",
+  card: "#ffffff",
+  border: "#e2e8f0",
+  textPrimary: "#111827",
+  textSecondary: "#475569",
+  inputBg: "#f8fafc",
+  inputBorder: "#cbd5e1",
+  placeholder: "#94a3b8",
+  link: "#2563eb",
+  buttonBg: "#2563eb",
+  buttonBorder: "#2563eb",
+  warning: "#b45309",
+  warningBorder: "#fbbf24",
 };
 
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   themeButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 50,
     right: 30,
     zIndex: 999,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 20,
     padding: 6,
   },
-  scrollContainer: 
-  { 
-    flexGrow: 1, 
-    justifyContent: 'center', 
-    paddingVertical: 80 
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    paddingVertical: 80,
   },
-  container: 
-  { 
-    alignItems: 'center', 
-    justifyContent: 'center', 
-    paddingHorizontal: 20 
+  container: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 20,
   },
   card: {
-    width: '100%',
+    width: "100%",
     maxWidth: 420,
     borderRadius: 20,
     padding: 24,
     borderWidth: 1,
     elevation: 8,
   },
-  header: 
-  { 
-    alignItems: 'center', 
-    marginBottom: 24 
+  header: {
+    alignItems: "center",
+    marginBottom: 24,
   },
-  avatar: 
-  { 
-    width: 80, 
-    height: 80, 
-    borderRadius: 40, 
-    marginBottom: 16 
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginBottom: 16,
   },
-  title: 
-  { 
-    fontSize: 26, 
-    fontWeight: 'bold', 
-    marginBottom: 4 
+  title: {
+    fontSize: 26,
+    fontWeight: "bold",
+    marginBottom: 4,
   },
-  subtitle: 
-  { 
-    fontSize: 15 
+  subtitle: {
+    fontSize: 15,
   },
-  warningBanner: 
-  { padding: 10, 
-    borderRadius: 8, 
-    borderWidth: 1, 
-    marginTop: 8 
+  warningBanner: { padding: 10, borderRadius: 8, borderWidth: 1, marginTop: 8 },
+  warningText: {
+    textAlign: "center",
   },
-  warningText: 
-  { 
-    textAlign: 'center' 
+  inputContainer: {
+    marginBottom: 16,
   },
-  inputContainer: 
-  { 
-    marginBottom: 16 
+  label: { fontSize: 14, marginBottom: 6 },
+  input: {
+    width: "100%",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderRadius: 12,
   },
-  label: 
-  { fontSize: 14, 
-    marginBottom: 6 
+  inputError: {
+    borderColor: "#ef4444",
   },
-  input: 
-  { 
-    width: '100%', 
-    paddingHorizontal: 16, 
-    paddingVertical: 12, 
-    borderWidth: 1, 
-    borderRadius: 12 
+  errorText: {
+    color: "#ef4444",
+    fontSize: 12,
+    marginTop: 4,
   },
-  inputError: 
-  { 
-    borderColor: '#ef4444' 
+  storageSection: {
+    marginBottom: 20,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  errorText: 
-  { 
-    color: '#ef4444', 
-    fontSize: 12, 
-    marginTop: 4 
+  sectionTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    marginBottom: 8,
   },
-  storageSection: 
-  { 
-    marginBottom: 20, 
-    padding: 14, 
-    borderRadius: 12, 
-    borderWidth: 1 
+  performanceSection: {
+    marginBottom: 20,
+    padding: 14,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  sectionTitle: 
-  { 
-    fontSize: 15, 
-    fontWeight: '600', 
-    marginBottom: 8 
+  performanceResult: {
+    marginBottom: 8,
   },
-  performanceSection: 
-  { 
-    marginBottom: 20, 
-    padding: 14, 
-    borderRadius: 12, 
-    borderWidth: 1 
+  performanceText: {
+    fontSize: 13,
   },
-  performanceResult: 
-  { 
-    marginBottom: 8 
+  performanceSuccess: {
+    color: "#22c55e",
   },
-  performanceText: 
-  { 
-    fontSize: 13 
+  performanceError: {
+    color: "#ef4444",
   },
-  performanceSuccess: 
-  { 
-    color: '#22c55e' 
+  forgotPassword: {
+    alignSelf: "flex-end",
+    marginBottom: 16,
   },
-  performanceError: 
-  { 
-    color: '#ef4444' 
+  linkText: {
+    fontWeight: "500",
   },
-  forgotPassword: 
-  { 
-    alignSelf: 'flex-end', 
-    marginBottom: 16 
+  buttonsContainer: {
+    gap: 10,
   },
-  linkText: 
-  { 
-    fontWeight: '500' 
-  },
-  buttonsContainer: 
-  { 
-    gap: 10 
-  },
-  button: 
-  { 
-    width: '100%', 
-    paddingVertical: 14, 
-    borderRadius: 12, 
-    alignItems: 'center' 
+  button: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
   },
   primaryButton: {},
-  secondaryButton: 
-  { 
-    backgroundColor: 'transparent', 
-    borderWidth: 1 
+  secondaryButton: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
   },
-  buttonDisabled: 
-  { 
-    opacity: 0.6 
+  buttonDisabled: {
+    opacity: 0.6,
   },
-  buttonText: 
-  { 
-    color: '#fff', 
-    fontWeight: '600' 
+  buttonText: {
+    color: "#fff",
+    fontWeight: "600",
   },
-  secondaryButtonText: 
-  { 
-    fontWeight: '600' 
+  secondaryButtonText: {
+    fontWeight: "600",
   },
-  footer: 
-  { 
-    flexDirection: 'row', 
-    justifyContent: 'center', 
-    marginTop: 24 
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 24,
   },
-  footerText: 
-  { 
-    fontSize: 14 
+  footerText: {
+    fontSize: 14,
   },
-  footerLink: 
-  { 
-    fontWeight: '600' 
+  footerLink: {
+    fontWeight: "600",
   },
-  disabledText: 
-  { 
-    fontSize: 12, 
-    color: '#ef4444', 
-    fontStyle: 'italic' 
+  disabledText: {
+    fontSize: 12,
+    color: "#ef4444",
+    fontStyle: "italic",
   },
 });
