@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, useRouter } from "expo-router";
 import Checkbox from "../../components/Checkbox";
 import { AsyncStorageService } from "../../services/AsyncStorageService";
@@ -25,6 +26,14 @@ interface PerformanceResult {
 }
 
 export default function LoginScreen() {
+  useEffect(() => {
+  const checkLoggedUser = async () => {
+    const loggedUser = await AsyncStorage.getItem("@loggedUser");
+    if (loggedUser) router.replace("/Homescreen");
+  };
+  checkLoggedUser();
+}, []);
+
   const router = useRouter();
   const [formData, setFormData] = useState({
     email: "",
@@ -41,7 +50,37 @@ export default function LoginScreen() {
     PerformanceResult[]
   >([]);
   const [sqliteAvailable, setSqliteAvailable] = useState(true);
-   const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isThemeLoaded, setIsThemeLoaded] = useState(false); // 👈 controla se o tema foi carregado
+  const [loginSuccess, setLoginSuccess] = useState(false);
+
+  // ---------- 🌙 Persistência do modo escuro ----------
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        // carrega o tema salvo
+        const savedTheme = await AsyncStorage.getItem("@themeMode");
+        if (savedTheme !== null) {
+          setIsDarkMode(savedTheme === "dark");
+        }
+      } catch (error) {
+        console.error("Erro ao carregar tema:", error);
+      } finally {
+        // evita piscar — só renderiza depois de carregar o tema
+        setIsThemeLoaded(true);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  useEffect(() => {
+    if (isThemeLoaded) {
+      AsyncStorage.setItem("@themeMode", isDarkMode ? "dark" : "light").catch(
+        (err) => console.error("Erro ao salvar tema:", err)
+      );
+    }
+  }, [isDarkMode, isThemeLoaded]);
+  // ------------------------------------------------------
 
   // Inicializar SQLite com tratamento de erro
   useEffect(() => {
@@ -61,6 +100,13 @@ export default function LoginScreen() {
 
     initializeSQLite();
   }, []);
+
+  useEffect(() => {
+  if (loginSuccess) {
+    router.replace("/Homescreen");
+  }
+}, [loginSuccess]);
+
 
   const validateForm = () => {
     const newErrors = {
@@ -84,7 +130,6 @@ export default function LoginScreen() {
     return !newErrors.email && !newErrors.password;
   };
 
-  // No handleLogin, adicione estes logs:
   const handleLogin = async () => {
     if (!validateForm()) return;
 
@@ -125,28 +170,30 @@ export default function LoginScreen() {
         console.log("👤 Usuário encontrado:", result.user.email);
         console.log("🔑 Verificando senha...");
 
-        // Verificar senha
         if (result.user.password === formData.password) {
-          console.log("✅ Login bem-sucedido!");
-          Alert.alert(
-            "Sucesso!",
-            `Login realizado com sucesso usando ${
-              selectedStorage === "asyncStorage" ? "AsyncStorage" : "SQLite"
-            }!\n\nTempo de busca: ${result.time.toFixed(2)}ms`,
-            [
-              {
-                text: "OK",
-                onPress: () => {
-                  setFormData({
-                    email: "",
-                    password: "",
-                  });
-                  router.replace("/");
-                },
-              },
-            ]
-          );
-        } else {
+  console.log("✅ Login bem-sucedido!");
+
+  try {
+    await AsyncStorage.setItem("@loggedUser", result.user.name || result.user.email);
+  } catch (err) {
+    console.error("Erro ao salvar usuário logado:", err);
+  }
+
+  Alert.alert(
+    "Sucesso!",
+    `Login realizado com sucesso usando ${
+      selectedStorage === "asyncStorage" ? "AsyncStorage" : "SQLite"
+    }!\n\nTempo de busca: ${result.time.toFixed(2)}ms`
+  );
+
+  setFormData({ email: "", password: "" });
+
+  // 🔹 Marca que o login foi concluído → dispara o redirecionamento automático
+  setLoginSuccess(true);
+
+
+}
+ else {
           console.log("❌ Senha incorreta");
           Alert.alert("Erro", "Senha incorreta. Tente novamente.");
         }
@@ -164,6 +211,7 @@ export default function LoginScreen() {
       setLoading(false);
     }
   };
+
   const handleTestPerformance = async () => {
     if (!validateForm()) return;
 
@@ -172,7 +220,6 @@ export default function LoginScreen() {
     try {
       const testResults: PerformanceResult[] = [];
 
-      // Testar AsyncStorage
       const asyncResult = await AsyncStorageService.getUserByEmail(
         formData.email.trim()
       );
@@ -184,7 +231,6 @@ export default function LoginScreen() {
         message: asyncResult.success ? "AsyncStorage: OK" : asyncResult.error,
       });
 
-      // Testar SQLite apenas se estiver disponível
       if (sqliteAvailable) {
         const sqliteResult = await SQLiteService.getUserByEmail(
           formData.email.trim()
@@ -226,34 +272,66 @@ export default function LoginScreen() {
       setLoading(false);
     }
   };
- const theme = isDarkMode ? darkTheme : lightTheme;
+
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
+  if (!isThemeLoaded) {
+    // evita piscar enquanto carrega o tema
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: "#000",
+          justifyContent: "center",
+          alignItems: "center",
+        }}
+      >
+        <ActivityIndicator size="large" color="#93c5fd" />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.gradient, { backgroundColor: theme.background }]}>
-      {/* Botão de alternância */}
-      <TouchableOpacity 
-        style={styles.themeButton} 
+      <TouchableOpacity
+        style={styles.themeButton}
         onPress={() => setIsDarkMode(!isDarkMode)}
       >
-        <Text style={{ fontSize: 20 }}>
-          {isDarkMode ? '☀️' : '🌙'}
-        </Text>
+        <Text style={{ fontSize: 20 }}>{isDarkMode ? "☀️" : "🌙"}</Text>
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.container}>
-          <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View
+            style={[
+              styles.card,
+              { backgroundColor: theme.card, borderColor: theme.border },
+            ]}
+          >
             <View style={styles.header}>
-              <Image 
-                source={{ uri: 'https://cdn-icons-png.flaticon.com/512/847/847969.png' }} 
+              <Image
+                source={{
+                  uri: "https://cdn-icons-png.flaticon.com/512/847/847969.png",
+                }}
                 style={styles.avatar}
               />
-              <Text style={[styles.title, { color: theme.textPrimary }]}>Bem-vindo de volta</Text>
-              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>Faça login na sua conta</Text>
-              
+              <Text style={[styles.title, { color: theme.textPrimary }]}>
+                Bem-vindo de volta
+              </Text>
+              <Text style={[styles.subtitle, { color: theme.textSecondary }]}>
+                Faça login na sua conta
+              </Text>
+
               {!sqliteAvailable && (
-                <View style={[styles.warningBanner, { borderColor: theme.warningBorder }]}>
-                  <Text style={[styles.warningText, { color: theme.warning }]}>
+                <View
+                  style={[
+                    styles.warningBanner,
+                    { borderColor: theme.warningBorder },
+                  ]}
+                >
+                  <Text
+                    style={[styles.warningText, { color: theme.warning }]}
+                  >
                     ⚠️ SQLite não disponível. Usando AsyncStorage.
                   </Text>
                 </View>

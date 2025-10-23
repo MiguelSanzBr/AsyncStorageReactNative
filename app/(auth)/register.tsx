@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Image
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Link, useRouter } from "expo-router";
 import Checkbox from "../../components/Checkbox";
 import { AsyncStorageService } from "../../services/AsyncStorageService";
@@ -46,6 +47,34 @@ export default function RegisterScreen() {
     PerformanceResult[]
   >([]);
   const [sqliteAvailable, setSqliteAvailable] = useState(true);
+  const [isThemeLoaded, setIsThemeLoaded] = useState(false); // 👈 controla se o tema foi carregado
+
+  // ---------- 🌙 Persistência do modo escuro ----------
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        // carrega o tema salvo
+        const savedTheme = await AsyncStorage.getItem("@themeMode");
+        if (savedTheme !== null) {
+          setIsDarkMode(savedTheme === "dark");
+        }
+      } catch (error) {
+        console.error("Erro ao carregar tema:", error);
+      } finally {
+        // evita piscar — só renderiza depois de carregar o tema
+        setIsThemeLoaded(true);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  useEffect(() => {
+    if (isThemeLoaded) {
+      AsyncStorage.setItem("@themeMode", isDarkMode ? "dark" : "light").catch(
+        (err) => console.error("Erro ao salvar tema:", err)
+      );
+    }
+  }, [isDarkMode, isThemeLoaded]);
 
   // Inicializar SQLite com tratamento de erro
   useEffect(() => {
@@ -251,14 +280,12 @@ export default function RegisterScreen() {
   return (
     <View style={[styles.gradient, { backgroundColor: theme.background }]}>
       {/* Botão modo escuro/claro */}
-      <TouchableOpacity 
-        style={styles.themeButton} 
-        onPress={() => setIsDarkMode(!isDarkMode)}
-      >
-        <Text style={{ fontSize: 20 }}>
-          {isDarkMode ? '☀️' : '🌙'}
-        </Text>
-      </TouchableOpacity>
+      <TouchableOpacity
+              style={styles.themeButton}
+              onPress={() => setIsDarkMode(!isDarkMode)}
+            >
+              <Text style={{ fontSize: 20 }}>{isDarkMode ? "☀️" : "🌙"}</Text>
+        </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.container}>
